@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
-using TrilhaApiDesafio.Context;
+using TrilhaApiDesafio.DTO;
+using TrilhaApiDesafio.Interfaces;
 using TrilhaApiDesafio.Models;
+
 
 namespace TrilhaApiDesafio.Controllers
 {
@@ -8,67 +10,111 @@ namespace TrilhaApiDesafio.Controllers
     [Route("[controller]")]
     public class TarefaController : ControllerBase
     {
-        private readonly OrganizadorContext _context;
+        private readonly IUseCaseAddTarefa _useCaseAddTarefa;
+        private readonly IUseCaseUpdateTarefa _useCaseUpdateTarefa;
+        private readonly IUseCaseDeleteTarefa _useCaseDeleteTarefa;
+        private readonly IUseCaseGetTarefa _useCaseGetTarefa;
+        private readonly IUseCaseGetAllTarefas _useCaseGetAllTarefas;
+        private readonly IUseCaseGetFilterDateTarefa _useCaseGetFilterDateTarefa;
+        private readonly IUseCaseGetFilterStatusTarefa _useCaseGetFilterStatusTarefa;
+        private readonly IUseCaseGetFilterTitleTarefa _useCaseGetFilterTitleTarefa;
 
-        public TarefaController(OrganizadorContext context)
+        public TarefaController(IUseCaseAddTarefa useCaseAddTarefa, 
+                                IUseCaseUpdateTarefa useCaseUpdateTarefa, 
+                                IUseCaseDeleteTarefa useCaseDeleteTarefa, 
+                                IUseCaseGetTarefa useCaseGetTarefa, 
+                                IUseCaseGetAllTarefas useCaseGetAllTarefas, 
+                                IUseCaseGetFilterDateTarefa useCaseGetFilterDateTarefa, 
+                                IUseCaseGetFilterStatusTarefa useCaseGetFilterStatusTarefa, 
+                                IUseCaseGetFilterTitleTarefa useCaseGetFilterTitleTarefa)
         {
-            _context = context;
+            _useCaseAddTarefa = useCaseAddTarefa;
+            _useCaseUpdateTarefa = useCaseUpdateTarefa;
+            _useCaseDeleteTarefa = useCaseDeleteTarefa;
+            _useCaseGetTarefa = useCaseGetTarefa;
+            _useCaseGetAllTarefas = useCaseGetAllTarefas;
+            _useCaseGetFilterDateTarefa = useCaseGetFilterDateTarefa;
+            _useCaseGetFilterStatusTarefa = useCaseGetFilterStatusTarefa;
+            _useCaseGetFilterTitleTarefa = useCaseGetFilterTitleTarefa;
         }
 
         [HttpGet("{id}")]
         public IActionResult ObterPorId(int id)
         {
-            // TODO: Buscar o Id no banco utilizando o EF
-            // TODO: Validar o tipo de retorno. Se não encontrar a tarefa, retornar NotFound,
-            // caso contrário retornar OK com a tarefa encontrada
-            return Ok();
+            var response = _useCaseGetTarefa.Execute(id);
+
+            if (response != null)
+                return Ok(response);
+            else
+                return NotFound();
         }
 
         [HttpGet("ObterTodos")]
         public IActionResult ObterTodos()
         {
-            // TODO: Buscar todas as tarefas no banco utilizando o EF
-            return Ok();
+            var response = _useCaseGetAllTarefas.Execute();
+
+            if (response != null && response.Count > 0)
+                return Ok(response);
+            else
+                return NotFound();
         }
 
         [HttpGet("ObterPorTitulo")]
         public IActionResult ObterPorTitulo(string titulo)
         {
-            // TODO: Buscar  as tarefas no banco utilizando o EF, que contenha o titulo recebido por parâmetro
-            // Dica: Usar como exemplo o endpoint ObterPorData
-            return Ok();
+            var response = _useCaseGetFilterTitleTarefa.Execute(titulo);
+            if (response != null && response.Count > 0)
+                return Ok(response);
+            else
+                return NotFound();
         }
 
         [HttpGet("ObterPorData")]
         public IActionResult ObterPorData(DateTime data)
         {
-            var tarefa = _context.Tarefas.Where(x => x.Data.Date == data.Date);
-            return Ok(tarefa);
+            var response = _useCaseGetFilterDateTarefa.Execute(data);
+            if (response != null && response.Count > 0)
+                return Ok(response);
+            else
+                return NotFound();
+
         }
 
         [HttpGet("ObterPorStatus")]
         public IActionResult ObterPorStatus(EnumStatusTarefa status)
         {
-            // TODO: Buscar  as tarefas no banco utilizando o EF, que contenha o status recebido por parâmetro
-            // Dica: Usar como exemplo o endpoint ObterPorData
-            var tarefa = _context.Tarefas.Where(x => x.Status == status);
-            return Ok(tarefa);
+            var response = _useCaseGetFilterStatusTarefa.Execute(status);
+            if (response != null && response.Count > 0)
+                return Ok(response);
+            else
+                return NotFound();
+
         }
 
         [HttpPost]
-        public IActionResult Criar(Tarefa tarefa)
+        public IActionResult Criar(AddTarefaRequest tarefa)
         {
             if (tarefa.Data == DateTime.MinValue)
                 return BadRequest(new { Erro = "A data da tarefa não pode ser vazia" });
 
-            // TODO: Adicionar a tarefa recebida no EF e salvar as mudanças (save changes)
-            return CreatedAtAction(nameof(ObterPorId), new { id = tarefa.Id }, tarefa);
+           // return CreatedAtAction(nameof(ObterPorId), new { id = tarefa.Id }, tarefa);
+
+           // if (!ModelState.IsValid)
+           //     return BadRequest();
+
+            var response = _useCaseAddTarefa.Execute(tarefa);
+            if (response != null)
+                return Ok(response);
+            else
+                return BadRequest();
+
         }
 
         [HttpPut("{id}")]
-        public IActionResult Atualizar(int id, Tarefa tarefa)
+        public IActionResult Atualizar(int id, UpdateTarefaRequest tarefa)
         {
-            var tarefaBanco = _context.Tarefas.Find(id);
+            var tarefaBanco = _useCaseGetTarefa.Execute(id);
 
             if (tarefaBanco == null)
                 return NotFound();
@@ -76,21 +122,22 @@ namespace TrilhaApiDesafio.Controllers
             if (tarefa.Data == DateTime.MinValue)
                 return BadRequest(new { Erro = "A data da tarefa não pode ser vazia" });
 
-            // TODO: Atualizar as informações da variável tarefaBanco com a tarefa recebida via parâmetro
-            // TODO: Atualizar a variável tarefaBanco no EF e salvar as mudanças (save changes)
-            return Ok();
+            var response = _useCaseUpdateTarefa.Execute(tarefa, id);
+            if (response != null)
+                return Ok(response);
+            else
+                return BadRequest();
         }
 
         [HttpDelete("{id}")]
         public IActionResult Deletar(int id)
         {
-            var tarefaBanco = _context.Tarefas.Find(id);
+            var response = _useCaseDeleteTarefa.Execute(id);
 
-            if (tarefaBanco == null)
+            if (response)
+                return NoContent();
+            else
                 return NotFound();
-
-            // TODO: Remover a tarefa encontrada através do EF e salvar as mudanças (save changes)
-            return NoContent();
         }
     }
 }

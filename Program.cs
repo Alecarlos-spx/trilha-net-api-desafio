@@ -1,6 +1,9 @@
-using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
+using TrilhaApiDesafio.Configurations;
 using TrilhaApiDesafio.Context;
+using TrilhaApiDesafio.Interfaces;
+using TrilhaApiDesafio.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +17,10 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddAutoMapperApi(typeof(MapperProfile));
+builder.Services.AddTransient<ITarefaRepository, TarefaRepository>();
+builder.Services.AddUseCases();
 
 var app = builder.Build();
 
